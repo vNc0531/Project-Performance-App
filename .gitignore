@@ -1,0 +1,4 @@
+.venv313/
+uploads/
+__pycache__/
+*.pyc

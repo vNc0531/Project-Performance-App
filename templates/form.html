@@ -1,0 +1,624 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Project Performance</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#f7f8fb;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --border:#e5e7eb;
+      --btn:#0b5fff;
+      --btn2:#111827;
+      --btnText:#ffffff;
+      --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      --radius: 14px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background:var(--bg);
+      color:var(--text);
+    }
+    .wrap{max-width:1200px;margin:24px auto;padding:0 16px;}
+    h1{margin:0 0 14px 0;font-size:22px;}
+    .hint{color:var(--muted);font-size:13px;margin:6px 0 0 0;}
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow: var(--shadow);
+      padding:16px;
+      margin:16px 0;
+    }
+    .card h2{margin:0;font-size:16px;}
+    .card .sub{color:var(--muted);font-size:13px;margin-top:6px}
+    .topbar{
+      display:flex;gap:12px;align-items:center;justify-content:space-between;
+      margin-bottom:12px;
+    }
+    .row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;}
+    .field{min-width:220px;flex:1;}
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    input[type="text"], input[type="number"], input[type="date"], select, textarea{
+      width:100%;
+      padding:10px 10px;
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:#fff;
+      font-size:14px;
+    }
+    textarea{min-height:80px;resize:vertical;}
+    .btn{
+      display:inline-flex;align-items:center;gap:8px;
+      background:var(--btn);
+      color:var(--btnText);
+      border:none;border-radius:10px;
+      padding:9px 12px;
+      cursor:pointer;
+      font-weight:600;
+      font-size:13px;
+    }
+    .btn.secondary{background:#111827;}
+    .btn.ghost{
+      background:transparent;color:var(--btn);
+      border:1px solid var(--border);
+      font-weight:600;
+    }
+    .btn.small{padding:7px 10px;font-size:12px;border-radius:9px;}
+    .btn.danger{background:#b91c1c;}
+    table{width:100%;border-collapse:separate;border-spacing:0;}
+    thead th{
+      text-align:left;font-size:12px;color:var(--muted);
+      border-bottom:1px solid var(--border);
+      padding:10px 8px;
+      background:#fafafa;
+      position:sticky;top:0;
+    }
+    tbody td{
+      border-bottom:1px solid var(--border);
+      padding:10px 8px;
+      vertical-align:top;
+    }
+    tbody tr:last-child td{border-bottom:none;}
+    .tableWrap{
+      border:1px solid var(--border);
+      border-radius:12px;
+      overflow:auto;
+      background:#fff;
+      margin-top:12px;
+      max-height:340px;
+    }
+    .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;}
+    .pill{
+      display:inline-flex;align-items:center;
+      padding:4px 8px;border-radius:999px;
+      background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600;
+    }
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+    .smallnote{font-size:12px;color:var(--muted);margin-top:10px}
+    .right{margin-left:auto}
+    .nowrap{white-space:nowrap}
+
+    /* Multi-select dropdown */
+    .ms-wrap{position:relative;min-width:200px;}
+    .ms-trigger{
+      width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;
+      background:#fff;font-size:14px;cursor:pointer;text-align:left;
+      display:flex;align-items:center;justify-content:space-between;gap:6px;
+      white-space:nowrap;overflow:hidden;
+    }
+    .ms-trigger-text{overflow:hidden;text-overflow:ellipsis;flex:1;color:var(--text);}
+    .ms-trigger-text.placeholder{color:#9ca3af;}
+    .ms-caret{flex-shrink:0;font-size:10px;color:var(--muted);}
+    .ms-dropdown{
+      display:none;position:absolute;z-index:999;top:calc(100% + 4px);left:0;
+      background:#fff;border:1px solid var(--border);border-radius:10px;
+      box-shadow:0 8px 20px rgba(0,0,0,.1);min-width:160px;padding:6px 0;
+    }
+    .ms-dropdown.open{display:block;}
+    .ms-option{
+      display:flex;align-items:center;gap:8px;padding:8px 12px;
+      cursor:pointer;font-size:13px;user-select:none;
+    }
+    .ms-option:hover{background:#f1f5f9;}
+    .ms-option input[type="checkbox"]{
+      width:14px;height:14px;margin:0;cursor:pointer;accent-color:var(--btn);
+      flex-shrink:0;border:none;padding:0;border-radius:3px;
+    }
+    .ms-pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;}
+    .ms-pill{
+      background:#eef2ff;color:#3730a3;font-size:11px;font-weight:600;
+      padding:2px 7px;border-radius:999px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <h1>Project Performance Form</h1>
+    <p class="hint">UI clone: dynamic rows, auto-fill ProjectIDs, file uploads. (No SQL yet, just posts to <span class="mono">/process</span>.)</p>
+
+    <form id="mainForm" action="/process" method="POST" enctype="multipart/form-data">
+
+      <!-- 1) Project Hours -->
+      <div class="card">
+        <div class="topbar">
+          <div>
+            <h2>Project Hours — Estimated &amp; Actual</h2>
+            <div class="sub">Add one row per project. Attach that project’s Estimated Hours file and its CADO Labor Hours file.</div>
+          </div>
+          <button class="btn small" type="button" onclick="addHoursRow()">+ Add Row</button>
+        </div>
+      
+        <div class="row" style="margin-bottom:12px;">
+          <div class="field" style="max-width:500px;">
+            <label>Team mapping file (CSV/XLSX)</label>
+            <input type="file" name="team_map_file" accept=".csv,.xlsx" />
+            <div class="smallnote">Used to map cost centers/expense categories to teams for all uploaded projects in this submission.</div>
+          </div>
+        </div>
+      
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width:200px;">ProjectID</th>
+                <th style="min-width:320px;">Estimated Hours file (CSV/XLSX)</th>
+                <th style="min-width:320px;">CADO Labor Hours file (CSV/XLSX)</th>
+                <th class="nowrap" style="min-width:90px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="hoursBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 2) TG General -->
+      <div class="card">
+        <div class="topbar">
+          <div>
+            <h2>TG1/TG3 — General Data</h2>
+            <div class="sub">Enter one row per project.</div>
+          </div>
+          <button class="btn small" type="button" onclick="addGeneralRow()">+ Add Row</button>
+        </div>
+
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width:180px;">ProjectID</th>
+                <th style="min-width:140px;">ProjectClass</th>
+                <th style="min-width:170px;">TG1 Date</th>
+                <th style="min-width:190px;">TG3 Estimated Date</th>
+                <th style="min-width:170px;">TG3 Actual Date</th>
+                <th style="min-width:190px;">TG4 Estimated Date</th>
+                <th style="min-width:170px;">TG4 Actual Date</th>
+                <th style="min-width:90px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="generalBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 3) TG Costs -->
+      <div class="card">
+        <div class="topbar">
+          <div>
+            <h2>TG1/TG3 — Cost Breakdown</h2>
+            <div class="sub">Forecasted vs Actual costs. Use Auto-fill to copy ProjectIDs from General.</div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn small" type="button" onclick="addCostsRow()">+ Add Row</button>
+            <button class="btn small ghost" type="button" onclick="autofillCostsFromGeneral()">Auto-fill ProjectIDs from General</button>
+          </div>
+        </div>
+
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width:180px;">ProjectID</th>
+                <th style="min-width:170px;">TG1 Forecasted<br><span class="muted">Material Cost ($)</span></th>
+                <th style="min-width:170px;">TG1 Forecasted<br><span class="muted">Dev Cost (no NRE) ($)</span></th>
+                <th style="min-width:140px;">TG1 Forecasted<br><span class="muted">NPI Cost ($)</span></th>
+                <th style="min-width:150px;">TG1 Forecasted<br><span class="muted">Total Budget ($)</span></th>
+                <th style="min-width:170px;">TG3 Actual<br><span class="muted">Material Cost ($)</span></th>
+                <th style="min-width:170px;">TG3 Actual<br><span class="muted">Dev Cost (no NRE) ($)</span></th>
+                <th style="min-width:140px;">TG3 Actual<br><span class="muted">NPI Cost ($)</span></th>
+                <th style="min-width:150px;">TG3 Actual<br><span class="muted">Total Cost ($)</span></th>
+                <th style="min-width:170px;">TG4 Actual<br><span class="muted">Material Cost ($)</span></th>
+                <th style="min-width:170px;">TG4 Actual<br><span class="muted">Dev Cost (no NRE) ($)</span></th>
+                <th style="min-width:140px;">TG4 Actual<br><span class="muted">NPI Cost ($)</span></th>
+                <th style="min-width:150px;">TG4 Actual<br><span class="muted">Total Cost ($)</span></th>
+                <th style="min-width:90px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="costsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 4) Scope -->
+      <div class="card">
+        <div class="topbar">
+          <div>
+            <h2>Scope Clusters &amp; Project Similarity</h2>
+            <div class="sub">Cluster + scope difficulty + description. Auto-fill ProjectIDs from General.</div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn small" type="button" onclick="addScopeRow()">+ Add Row</button>
+            <button class="btn small ghost" type="button" onclick="autofillScopeFromGeneral()">Auto-fill ProjectIDs from General</button>
+          </div>
+        </div>
+
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width:180px;">ProjectID</th>
+                <th style="min-width:200px;">Scope Cluster</th>
+                <th style="min-width:220px;">Key Functions Involved</th>
+                <th style="min-width:160px;">Scope Difficulty</th>
+                <th style="min-width:340px;">Cluster Description / Project Scope</th>
+                <th style="min-width:90px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="scopeBody"></tbody>
+          </table>
+        </div>
+
+        <div class="actions">
+          <button class="btn secondary" type="button" onclick="prepareAndSubmit()">Submit</button>
+        </div>
+
+        <!-- Hidden fields that Flask expects -->
+        <input type="hidden" name="tg_general_json" id="tg_general_json" value="[]">
+        <input type="hidden" name="tg_costs_json" id="tg_costs_json" value="[]">
+        <input type="hidden" name="scope_rows_json" id="scope_rows_json" value="[]">
+
+      </div>
+    </form>
+  </div>
+
+<script>
+  // ---------- helpers ----------
+  function el(tag, attrs={}, children=[]) {
+    const n = document.createElement(tag);
+    Object.entries(attrs).forEach(([k,v])=>{
+      if(k === "class") n.className = v;
+      else if(k.startsWith("on") && typeof v === "function") n.addEventListener(k.slice(2), v);
+      else n.setAttribute(k,v);
+    });
+    children.forEach(c => n.appendChild(typeof c === "string" ? document.createTextNode(c) : c));
+    return n;
+  }
+
+  function removeRow(btn){ btn.closest("tr").remove(); }
+
+  function getGeneralProjectIDs(){
+    return Array.from(document.querySelectorAll('input[name="gen_projectid"]'))
+      .map(x => (x.value || "").trim())
+      .filter(x => x.length > 0);
+  }
+
+  // ---------- Multi-select dropdown ----------
+  const KEY_FUNCTIONS = ["PJM","SA","RF","SW","DVE","NPI","ENG","FW","HW"];
+
+  function makeMultiSelect(name){
+    const wrap = document.createElement("div");
+    wrap.className = "ms-wrap";
+    wrap.dataset.name = name;
+
+    const trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = "ms-trigger";
+
+    const triggerText = document.createElement("span");
+    triggerText.className = "ms-trigger-text placeholder";
+    triggerText.textContent = "Select functions…";
+    trigger.appendChild(triggerText);
+
+    const caret = document.createElement("span");
+    caret.className = "ms-caret";
+    caret.textContent = "▼";
+    trigger.appendChild(caret);
+
+    const dropdown = document.createElement("div");
+    dropdown.className = "ms-dropdown";
+
+    KEY_FUNCTIONS.forEach(fn => {
+      const opt = document.createElement("label");
+      opt.className = "ms-option";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.value = fn;
+      cb.addEventListener("change", () => updateTriggerText(wrap));
+      opt.appendChild(cb);
+      opt.appendChild(document.createTextNode(fn));
+      dropdown.appendChild(opt);
+    });
+
+    trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      // Close others
+      document.querySelectorAll(".ms-dropdown.open").forEach(d => {
+        if(d !== dropdown) d.classList.remove("open");
+      });
+      dropdown.classList.toggle("open");
+    });
+
+    dropdown.addEventListener("click", (e) => {
+      e.stopPropagation();
+    });
+
+    wrap.appendChild(trigger);
+    wrap.appendChild(dropdown);
+    return wrap;
+  }
+
+  function updateTriggerText(wrap){
+    const checked = Array.from(wrap.querySelectorAll("input[type=checkbox]:checked")).map(c => c.value);
+    const span = wrap.querySelector(".ms-trigger-text");
+    if(checked.length === 0){
+      span.textContent = "Select functions…";
+      span.className = "ms-trigger-text placeholder";
+    } else {
+      span.textContent = checked.join(", ");
+      span.className = "ms-trigger-text";
+    }
+  }
+
+  function getMultiSelectValues(wrap){
+    if(!wrap) return [];
+    return Array.from(wrap.querySelectorAll("input[type=checkbox]:checked")).map(c => c.value);
+  }
+
+  // Close dropdowns when clicking outside
+  document.addEventListener("click", () => {
+    document.querySelectorAll(".ms-dropdown.open").forEach(d => d.classList.remove("open"));
+  });
+
+  // ---------- Section 1: Hours ----------
+  function addHoursRow(prefillPid=""){
+    const tbody = document.getElementById("hoursBody");
+    const tr = document.createElement("tr");
+
+    tr.appendChild(el("td", {}, [
+      el("input", {type:"text", name:"ph_projectid[]", value: prefillPid, placeholder:"e.g. LAM20083"})
+    ]));
+
+    tr.appendChild(el("td", {}, [
+      el("input", {type:"file", name:"ph_est[]", accept:".csv,.xlsx"})
+    ]));
+
+    tr.appendChild(el("td", {}, [
+      el("input", {type:"file", name:"ph_cado[]", accept:".csv,.xlsx"})
+    ]));
+
+    tr.appendChild(el("td", {}, [
+      el("button", {type:"button", class:"btn small danger", onclick:()=>removeRow(tr.querySelector("button"))}, ["Remove"])
+    ]));
+
+    tbody.appendChild(tr);
+  }
+
+  // ---------- Section 2: General ----------
+  function addGeneralRow(data={}){
+    const tbody = document.getElementById("generalBody");
+    const tr = document.createElement("tr");
+
+    tr.appendChild(el("td", {}, [
+      el("input", {type:"text", name:"gen_projectid", value: data.ProjectID || "", placeholder:"LAM20083"})
+    ]));
+
+    const pcSel = el("select", {name:"gen_projectclass"}, [
+      el("option", {value:""}, ["Select..."]),
+      ...["1A","2A","3A","1B","2B","3B","1C","2C","3C"].map(v =>
+        el("option", {value: v, ...(data.ProjectClass === v ? {selected:""} : {})}, [v])
+      )
+    ]);
+    tr.appendChild(el("td", {}, [pcSel]));
+
+    tr.appendChild(el("td", {}, [
+      el("input", {type:"date", name:"gen_tg1_date", value: data.TG1Date || ""})
+    ]));
+
+    tr.appendChild(el("td", {}, [
+      el("input", {type:"date", name:"gen_tg3_est_date", value: data.TG3EstimatedDate || ""})
+    ]));
+
+    tr.appendChild(el("td", {}, [
+      el("input", {type:"date", name:"gen_tg3_act_date", value: data.TG3ActualDate || ""})
+    ]));
+
+    tr.appendChild(el("td", {}, [
+      el("input", {type:"date", name:"gen_tg4_est_date", value: data.TG4EstimatedDate || ""})
+    ]));
+
+    tr.appendChild(el("td", {}, [
+      el("input", {type:"date", name:"gen_tg4_act_date", value: data.TG4ActualDate || ""})
+    ]));
+
+    tr.appendChild(el("td", {}, [
+      el("button", {type:"button", class:"btn small danger", onclick:()=>removeRow(tr.querySelector("button"))}, ["Remove"])
+    ]));
+
+    tbody.appendChild(tr);
+  }
+
+  // ---------- Section 3: Costs ----------
+  function addCostsRow(prefillPid=""){
+    const tbody = document.getElementById("costsBody");
+    const tr = document.createElement("tr");
+
+    const num = (name, placeholder="") => el("input", {type:"number", step:"0.01", name, placeholder});
+
+    tr.appendChild(el("td", {}, [ el("input", {type:"text", name:"cost_projectid", value: prefillPid, placeholder:"LAM20083"}) ]));
+    tr.appendChild(el("td", {}, [ num("cost_tg1_material") ]));
+    tr.appendChild(el("td", {}, [ num("cost_tg1_dev") ]));
+    tr.appendChild(el("td", {}, [ num("cost_tg1_npi") ]));
+    tr.appendChild(el("td", {}, [ num("cost_tg1_total_budget") ]));
+    tr.appendChild(el("td", {}, [ num("cost_tg3_material") ]));
+    tr.appendChild(el("td", {}, [ num("cost_tg3_dev") ]));
+    tr.appendChild(el("td", {}, [ num("cost_tg3_npi") ]));
+    tr.appendChild(el("td", {}, [ num("cost_tg3_total_cost") ]));
+    tr.appendChild(el("td", {}, [ num("cost_tg4_material") ]));
+    tr.appendChild(el("td", {}, [ num("cost_tg4_dev") ]));
+    tr.appendChild(el("td", {}, [ num("cost_tg4_npi") ]));
+    tr.appendChild(el("td", {}, [ num("cost_tg4_total_cost") ]));
+
+    tr.appendChild(el("td", {}, [
+      el("button", {type:"button", class:"btn small danger", onclick:()=>removeRow(tr.querySelector("button"))}, ["Remove"])
+    ]));
+
+    tbody.appendChild(tr);
+  }
+
+  function autofillCostsFromGeneral(){
+    const pids = getGeneralProjectIDs();
+    const existing = Array.from(document.querySelectorAll('input[name="cost_projectid"]'))
+      .map(x => (x.value || "").trim())
+      .filter(Boolean);
+
+    pids.forEach(pid=>{
+      if(!existing.includes(pid)) addCostsRow(pid);
+    });
+  }
+
+  // ---------- Section 4: Scope ----------
+  function addScopeRow(prefillPid=""){
+    const tbody = document.getElementById("scopeBody");
+    const tr = document.createElement("tr");
+
+    tr.appendChild(el("td", {}, [ el("input", {type:"text", name:"scope_projectid", value: prefillPid, placeholder:"LAM20083"}) ]));
+
+    tr.appendChild(el("td", {}, [
+      el("input", {type:"text", name:"scope_cluster", placeholder:"e.g. FW Reliability"})
+    ]));
+
+    tr.appendChild(el("td", {}, [ makeMultiSelect("scope_functions") ]));
+
+    const sel = el("select", {name:"scope_difficulty"}, [
+      el("option", {value:""}, ["Select..."]),
+      el("option", {value:"Low"}, ["Low"]),
+      el("option", {value:"Moderate"}, ["Moderate"]),
+      el("option", {value:"High"}, ["High"])
+    ]);
+    tr.appendChild(el("td", {}, [sel]));
+
+    tr.appendChild(el("td", {}, [
+      el("textarea", {name:"scope_description", placeholder:"Describe scope / cluster details..."}, [])
+    ]));
+
+    tr.appendChild(el("td", {}, [
+      el("button", {type:"button", class:"btn small danger", onclick:()=>removeRow(tr.querySelector("button"))}, ["Remove"])
+    ]));
+
+    tbody.appendChild(tr);
+  }
+
+  function autofillScopeFromGeneral(){
+    const pids = getGeneralProjectIDs();
+    const existing = Array.from(document.querySelectorAll('input[name="scope_projectid"]'))
+      .map(x => (x.value || "").trim())
+      .filter(Boolean);
+
+    pids.forEach(pid=>{
+      if(!existing.includes(pid)) addScopeRow(pid);
+    });
+  }
+
+  // ---------- Packaging into JSON fields Flask expects ----------
+  function preparePayloads(){
+    // General -> tg_general_json
+    const generalRows = [];
+    const genRows = document.querySelectorAll("#generalBody tr");
+    genRows.forEach(tr=>{
+      const cells = tr.querySelectorAll("input, select");
+      const ProjectID = (tr.querySelector('input[name="gen_projectid"]').value || "").trim();
+      if(!ProjectID) return;
+
+      generalRows.push({
+        ProjectID,
+        ProjectClass: (tr.querySelector('select[name="gen_projectclass"]').value || "").trim(),
+        TG1Date: (tr.querySelector('input[name="gen_tg1_date"]').value || ""),
+        TG3EstimatedDate: (tr.querySelector('input[name="gen_tg3_est_date"]').value || ""),
+        TG3ActualDate: (tr.querySelector('input[name="gen_tg3_act_date"]').value || ""),
+        TG4EstimatedDate: (tr.querySelector('input[name="gen_tg4_est_date"]').value || ""),
+        TG4ActualDate: (tr.querySelector('input[name="gen_tg4_act_date"]').value || "")
+      });
+    });
+
+    // Costs -> tg_costs_json
+    const costsRows = [];
+    const cRows = document.querySelectorAll("#costsBody tr");
+    cRows.forEach(tr=>{
+      const ProjectID = (tr.querySelector('input[name="cost_projectid"]').value || "").trim();
+      if(!ProjectID) return;
+
+      const g = (name) => tr.querySelector(`input[name="${name}"]`).value;
+
+      costsRows.push({
+        ProjectID,
+        TG1_MaterialCost: g("cost_tg1_material"),
+        TG1_DevCost_NoNRE: g("cost_tg1_dev"),
+        TG1_NPICost: g("cost_tg1_npi"),
+        TG1_TotalBudget: g("cost_tg1_total_budget"),
+        TG3_MaterialCost: g("cost_tg3_material"),
+        TG3_DevCost_NoNRE: g("cost_tg3_dev"),
+        TG3_NPICost: g("cost_tg3_npi"),
+        TG3_TotalCost: g("cost_tg3_total_cost"),
+        TG4_MaterialCost: g("cost_tg4_material"),
+        TG4_DevCost_NoNRE: g("cost_tg4_dev"),
+        TG4_NPICost: g("cost_tg4_npi"),
+        TG4_TotalCost: g("cost_tg4_total_cost")
+      });
+    });
+
+    // Scope -> scope_rows_json
+    const scopeRows = [];
+    const sRows = document.querySelectorAll("#scopeBody tr");
+    sRows.forEach(tr=>{
+      const ProjectID = (tr.querySelector('input[name="scope_projectid"]').value || "").trim();
+      if(!ProjectID) return;
+
+      scopeRows.push({
+        ProjectID,
+        ScopeCluster: (tr.querySelector('input[name="scope_cluster"]').value || "").trim(),
+        KeyFunctionsInvolved: getMultiSelectValues(tr.querySelector('.ms-wrap')).join(', '),
+        ScopeDifficulty: (tr.querySelector('select[name="scope_difficulty"]').value || ""),
+        ClusterDescription: (tr.querySelector('textarea[name="scope_description"]').value || "").trim()
+      });
+    });
+
+    document.getElementById("tg_general_json").value = JSON.stringify(generalRows);
+    document.getElementById("tg_costs_json").value = JSON.stringify(costsRows);
+    document.getElementById("scope_rows_json").value = JSON.stringify(scopeRows);
+  }
+
+  function prepareAndSubmit(){
+    preparePayloads();
+    document.getElementById("mainForm").submit();
+  }
+
+  // If user hits the top submit button, also package JSON first
+  document.getElementById("mainForm").addEventListener("submit", function(){
+    preparePayloads();
+  });
+
+  // --------- Seed rows so it doesn’t start empty ----------
+  addHoursRow();
+  addGeneralRow();
+  addCostsRow();
+  addScopeRow();
+</script>
+
+</body>
+</html>
