@@ -49,6 +49,11 @@ def safe_json_loads(s: str):
     except json.JSONDecodeError:
         return []
 
+def df_records(df):
+    if df.empty:
+        return []
+    return json.loads(df.to_json(orient="records", date_format="iso"))
+
 def read_table_file(path):
     """
     Read CSV or Excel into pandas DataFrame.
@@ -544,22 +549,22 @@ def delete_matching_rows_then_append(df, table_name, key_cols, schema="core"):
         WHERE {where_clause}
     """)
 
-#    with engine.begin() as conn:
-#        # delete only matching rows
-#        for _, row in df[key_cols].iterrows():
-#            params = {col: sql_value(row[col]) for col in key_cols}
-#            conn.execute(delete_sql, params)
+    with engine.begin() as conn:
+        # delete only matching rows
+        for _, row in df[key_cols].iterrows():
+            params = {col: sql_value(row[col]) for col in key_cols}
+            conn.execute(delete_sql, params)
 
         # append the new rows
-#        df.to_sql(
-#            table_name,
-#            con=conn,
-#            schema=schema,
-#            if_exists="append",
-#            index=False,
-#            method="multi",
-#           chunksize=1000
-#    )
+        df.to_sql(
+            table_name,
+            con=conn,
+            schema=schema,
+            if_exists="append",
+            index=False,
+            method="multi",
+           chunksize=1000
+    )
 
     return {
         "table": f"{schema}.{table_name}",
@@ -568,6 +573,21 @@ def delete_matching_rows_then_append(df, table_name, key_cols, schema="core"):
         "rows_incoming": int(len(df)),
         "rows_appended": int(len(df))
     }
+
+def upsert_dim(df, column, table_name, engine, schema="core"):
+    if df.empty or column not in df.columns:
+        return
+
+    dim = (
+        pd.DataFrame({column: df[column].dropna().unique()})
+        .drop_duplicates()
+    )
+
+    existing = pd.read_sql(f"SELECT [{column}] FROM [{schema}].[{table_name}]", engine)
+    dim = dim[~dim[column].isin(existing[column])]
+
+    if not dim.empty:
+        dim.to_sql(table_name, engine, schema=schema, if_exists="append", index=False)
 
 @app.get("/")
 def index():
@@ -583,9 +603,6 @@ def health():
 def process():
     load_id = str(uuid.uuid4())
     loaded_at = dt.datetime.utcnow().isoformat()
-
-    # Manual fields
-    project_class = request.form.get("project_class", "").strip()
 
     tg_general = safe_json_loads(request.form.get("tg_general_json", "[]"))
     tg_costs = safe_json_loads(request.form.get("tg_costs_json", "[]"))
@@ -765,7 +782,7 @@ def process():
 
     tg_scope_df = pd.DataFrame(scope_rows)
 
-    scope_cols = ["ProjectID", "ScopeCluster", "KeyFunctionsInvolved", "ScopeDifficulty", "ClusterDescription"]
+    scope_cols = ["ProjectID", "ScopeCluster", "KeyFunctionsInvolved", "ClusterDescription"]
     tg_scope_df = tg_scope_df.reindex(columns=scope_cols)
 
     if not tg_scope_df.empty and "ProjectID" in tg_scope_df.columns:
@@ -820,6 +837,13 @@ def process():
         key_cols=["ProjectID"],
         schema="core"
     )
+
+# 6) Dim Tables
+
+    upsert_dim(tg_general_df, "ProjectID", "DIM_ProjectID", engine)
+    upsert_dim(tg_general_df, "ProjectClass", "DIM_ProjectClass", engine)
+    upsert_dim(final_combined_df, "FunctionGroup", "DIM_FunctionGroup", engine)  
+    
     # -----------------------------
     # Save transformed table to temp Excel
     # -----------------------------
@@ -834,7 +858,6 @@ def process():
         "ok": True,
         "load_id": load_id,
         "loaded_at_utc": loaded_at,
-        "project_class": project_class,
         "counts": {
             "tg_general_rows": len(tg_general),
             "tg_costs_rows": len(tg_costs),

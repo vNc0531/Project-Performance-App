@@ -141,7 +141,6 @@
 <body>
   <div class="wrap">
     <h1>Project Performance Form</h1>
-    <p class="hint">UI clone: dynamic rows, auto-fill ProjectIDs, file uploads. (No SQL yet, just posts to <span class="mono">/process</span>.)</p>
 
     <form id="mainForm" action="/process" method="POST" enctype="multipart/form-data">
 
@@ -250,7 +249,7 @@
         <div class="topbar">
           <div>
             <h2>Scope Clusters &amp; Project Similarity</h2>
-            <div class="sub">Cluster + scope difficulty + description. Auto-fill ProjectIDs from General.</div>
+            <div class="sub">Cluster + description. Auto-fill ProjectIDs from General.</div>
           </div>
           <div style="display:flex;gap:10px;flex-wrap:wrap;">
             <button class="btn small" type="button" onclick="addScopeRow()">+ Add Row</button>
@@ -263,9 +262,8 @@
             <thead>
               <tr>
                 <th style="min-width:180px;">ProjectID</th>
-                <th style="min-width:200px;">Scope Cluster</th>
+                <th style="min-width:260px;">Scope Cluster</th>
                 <th style="min-width:220px;">Key Functions Involved</th>
-                <th style="min-width:160px;">Scope Difficulty</th>
                 <th style="min-width:340px;">Cluster Description / Project Scope</th>
                 <th style="min-width:90px;">Actions</th>
               </tr>
@@ -309,7 +307,70 @@
   }
 
   // ---------- Multi-select dropdown ----------
-  const KEY_FUNCTIONS = ["PJM","SA","RF","SW","DVE","NPI","ENG","FW","HW"];
+  const KEY_FUNCTIONS = ["RF","SW/FW","DVE","NPI","EE", "ME"];
+  const SCOPE_CLUSTERS = ["New Design", "Derivative", "Single Function"];
+
+  function makeScopeClusterSelect(name){
+    const wrap = document.createElement("div");
+    wrap.className = "ms-wrap";
+    wrap.dataset.name = name;
+
+    const trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = "ms-trigger";
+
+    const triggerText = document.createElement("span");
+    triggerText.className = "ms-trigger-text placeholder";
+    triggerText.textContent = "Select cluster…";
+    trigger.appendChild(triggerText);
+
+    const caret = document.createElement("span");
+    caret.className = "ms-caret";
+    caret.textContent = "▼";
+    trigger.appendChild(caret);
+
+    const dropdown = document.createElement("div");
+    dropdown.className = "ms-dropdown";
+    dropdown.dataset.placeholder = "Select cluster…";
+
+    SCOPE_CLUSTERS.forEach(fn => {
+      const opt = document.createElement("label");
+      opt.className = "ms-option";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.value = fn;
+      cb.addEventListener("change", () => updateScopeClusterText(wrap));
+      opt.appendChild(cb);
+      opt.appendChild(document.createTextNode(fn));
+      dropdown.appendChild(opt);
+    });
+
+    trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      document.querySelectorAll(".ms-dropdown.open").forEach(d => {
+        if(d !== dropdown) d.classList.remove("open");
+      });
+      dropdown.classList.toggle("open");
+    });
+
+    dropdown.addEventListener("click", (e) => { e.stopPropagation(); });
+
+    wrap.appendChild(trigger);
+    wrap.appendChild(dropdown);
+    return wrap;
+  }
+
+  function updateScopeClusterText(wrap){
+    const checked = Array.from(wrap.querySelectorAll("input[type=checkbox]:checked")).map(c => c.value);
+    const span = wrap.querySelector(".ms-trigger-text");
+    if(checked.length === 0){
+      span.textContent = "Select cluster…";
+      span.className = "ms-trigger-text placeholder";
+    } else {
+      span.textContent = checked.join(", ");
+      span.className = "ms-trigger-text";
+    }
+  }
 
   function makeMultiSelect(name){
     const wrap = document.createElement("div");
@@ -499,19 +560,9 @@
 
     tr.appendChild(el("td", {}, [ el("input", {type:"text", name:"scope_projectid", value: prefillPid, placeholder:"LAM20083"}) ]));
 
-    tr.appendChild(el("td", {}, [
-      el("input", {type:"text", name:"scope_cluster", placeholder:"e.g. FW Reliability"})
-    ]));
+    tr.appendChild(el("td", {}, [ makeScopeClusterSelect("scope_cluster") ]));
 
     tr.appendChild(el("td", {}, [ makeMultiSelect("scope_functions") ]));
-
-    const sel = el("select", {name:"scope_difficulty"}, [
-      el("option", {value:""}, ["Select..."]),
-      el("option", {value:"Low"}, ["Low"]),
-      el("option", {value:"Moderate"}, ["Moderate"]),
-      el("option", {value:"High"}, ["High"])
-    ]);
-    tr.appendChild(el("td", {}, [sel]));
 
     tr.appendChild(el("td", {}, [
       el("textarea", {name:"scope_description", placeholder:"Describe scope / cluster details..."}, [])
@@ -591,9 +642,8 @@
 
       scopeRows.push({
         ProjectID,
-        ScopeCluster: (tr.querySelector('input[name="scope_cluster"]').value || "").trim(),
-        KeyFunctionsInvolved: getMultiSelectValues(tr.querySelector('.ms-wrap')).join(', '),
-        ScopeDifficulty: (tr.querySelector('select[name="scope_difficulty"]').value || ""),
+        ScopeCluster: getMultiSelectValues(tr.querySelectorAll('.ms-wrap')[0]).join(', '),
+        KeyFunctionsInvolved: getMultiSelectValues(tr.querySelectorAll('.ms-wrap')[1]).join(', '),
         ClusterDescription: (tr.querySelector('textarea[name="scope_description"]').value || "").trim()
       });
     });
